@@ -20,3 +20,5 @@ Testtask/obj/
 *.dll
 *.exe
 *.pdb
+
+.history
