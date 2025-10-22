@@ -1,4 +1,4 @@
-# Test System / Candidate Task
+# Test System / C Sharp
 
 Questa applicazione permette di eseguire test online. L’utente inserisce il proprio nome, sceglie un test, risponde alle domande e, al termine, visualizza il risultato. I risultati vengono salvati in MongoDB.
 
