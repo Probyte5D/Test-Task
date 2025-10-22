@@ -1,0 +1,32 @@
+@TestSystem_HostAddress = http://localhost:5155
+
+### Get all tests
+GET {{TestSystem_HostAddress}}/api/test
+Accept: application/json
+
+### Create a new test
+POST {{TestSystem_HostAddress}}/api/test
+Content-Type: application/json
+
+{
+  "id": "1",
+  "title": "Test di esempio",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Qual è il colore del cielo?",
+      "options": [
+        { "id": "o1", "text": "Blu", "isCorrect": true },
+        { "id": "o2", "text": "Verde", "isCorrect": false }
+      ]
+    },
+    {
+      "id": "q2",
+      "text": "Quanto fa 2 + 2?",
+      "options": [
+        { "id": "o1", "text": "3", "isCorrect": false },
+        { "id": "o2", "text": "4", "isCorrect": true }
+      ]
+    }
+  ]
+}

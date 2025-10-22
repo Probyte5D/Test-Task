@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\TestSystem\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.TestSystem.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.TestSystem.props",
+      "PackagePath": "build\\TestSystem.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.TestSystem.props",
+      "PackagePath": "buildMultiTargeting\\TestSystem.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.TestSystem.props",
+      "PackagePath": "buildTransitive\\TestSystem.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

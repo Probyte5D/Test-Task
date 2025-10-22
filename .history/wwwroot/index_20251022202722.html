@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Test System</title>
+<style>
+    body { font-family: Arial; margin: 20px; text-align: center; background: #f9f9f9; }
+    .hidden { display: none; }
+    .question-card { margin-bottom: 20px; padding: 20px; border-radius: 10px; 
+                     box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-block; 
+                     text-align: left; background: #fff; }
+    .progress { width: 100%; background: #eee; height: 20px; margin-bottom: 20px; border-radius: 10px; }
+    .progress-bar { width: 0; height: 100%; background: #4caf50; border-radius: 10px; transition: width 0.3s; }
+    .answer-btn, .test-btn { display: inline-block; margin: 5px; padding: 10px 20px; 
+                              font-size: 16px; border: none; border-radius: 8px; cursor: pointer; 
+                              transition: transform 0.2s; background-color: #2196f3; color: white; }
+    .answer-btn:hover, .test-btn:hover { transform: scale(1.05); }
+    .answer-btn.correct { background-color: #4caf50; color: white; }
+    .answer-btn.wrong { background-color: #f44336; color: white; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Benvenuto al Test</h1>
+
+<div id="home">
+    <label>Nome: <input type="text" id="userName" placeholder="Es. Mario Rossi"></label><br><br>
+    <div id="testMenu"></div> <!-- barra dei pulsanti -->
+    <p id="homeError" style="color:red;"></p>
+</div>
+
+<div id="testView" class="hidden">
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <div id="questionContainer"></div>
+    <p id="testError" style="color:red;"></p>
+</div>
+
+<div id="resultView" class="hidden">
+    <h2>Risultato finale</h2>
+    <p id="resultText"></p>
+    <button onclick="restartTest()">Ricomincia</button>
+</div>
+
+<script>
+let tests = [];
+let currentTest = null;
+let currentQuestionIndex = 0;
+let correctAnswers = 0;
+
+// Carica i test dal server e crea pulsanti per la selezione
+async function loadTests() {
+    const res = await fetch('http://localhost:5155/api/Test');
+    tests = await res.json();
+
+    const menu = document.getElementById('testMenu');
+    menu.innerHTML = '';
+
+    tests.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'test-btn';
+        btn.textContent = t.Title || t.title; // titolo del test
+        btn.onclick = () => startTest(t.Id || t._id); // ID del test
+        menu.appendChild(btn);
+    });
+}
+
+function startTest(testId) {
+    const name = document.getElementById('userName').value.trim();
+
+    if (!name) {
+        document.getElementById('homeError').textContent = "Inserisci il nome!";
+        return;
+    }
+
+    document.getElementById('home').classList.add('hidden');
+    currentTest = tests.find(t => (t.Id || t._id) === testId);
+    currentQuestionIndex = 0;
+    correctAnswers = 0;
+    showQuestion();
+    document.getElementById('testView').classList.remove('hidden');
+}
+
+function showQuestion() {
+    const q = currentTest.Questions || currentTest.questions;
+    const question = q[currentQuestionIndex];
+    const container = document.getElementById('questionContainer');
+    container.innerHTML = `<div class="question-card">
+        <p><strong>Domanda ${currentQuestionIndex + 1} di ${q.length}:</strong> ${question.Text || question.text}</p>
+    </div>`;
+
+    const options = question.Options || question.options;
+    options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'answer-btn';
+        btn.textContent = opt.Text || opt.text;
+        btn.onclick = () => selectAnswer(i);
+        container.appendChild(btn);
+    });
+
+    updateProgress(q.length);
+}
+
+function updateProgress(totalQuestions) {
+    const percent = ((currentQuestionIndex) / totalQuestions) * 100;
+    document.getElementById('progressBar').style.width = percent + "%";
+}
+
+function selectAnswer(index) {
+    const q = currentTest.Questions || currentTest.questions;
+    const question = q[currentQuestionIndex];
+    const options = question.Options || question.options;
+    const buttons = document.querySelectorAll('.answer-btn');
+
+    buttons.forEach((btn, i) => {
+        if (i === index) {
+            btn.classList.add(options[i].IsCorrect || options[i].isCorrect ? 'correct' : 'wrong');
+        }
+        btn.disabled = true;
+    });
+
+    if (options[index].IsCorrect || options[index].isCorrect) correctAnswers++;
+
+    setTimeout(() => {
+        currentQuestionIndex++;
+        if (currentQuestionIndex >= q.length) {
+            finishTest();
+        } else {
+            showQuestion();
+        }
+    }, 500);
+}
+
+async function finishTest() {
+    document.getElementById('testView').classList.add('hidden');
+    document.getElementById('resultView').classList.remove('hidden');
+    document.getElementById('resultText').textContent =
+        `Ciao ${document.getElementById('userName').value}, hai risposto correttamente a ${correctAnswers} su ${currentTest.Questions.length || currentTest.questions.length} domande.`;
+
+    await fetch('http://localhost:5155/api/UserResult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userName: document.getElementById('userName').value,
+            testId: currentTest.Id || currentTest._id,
+            correctAnswers: correctAnswers,
+            totalQuestions: currentTest.Questions.length || currentTest.questions.length
+        })
+    });
+}
+
+function restartTest() {
+    document.getElementById('resultView').classList.add('hidden');
+    document.getElementById('home').classList.remove('hidden');
+    document.getElementById('userName').value = '';
+}
+
+// Carica i test all’avvio
+loadTests();
+</script>
+
+</body>
+</html>

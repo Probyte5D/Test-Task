@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Test System</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .hidden { display: none; }
+        .question { margin-bottom: 20px; }
+        .progress { width: 100%; background: #eee; height: 20px; margin-bottom: 10px; }
+        .progress-bar { width: 0; height: 100%; background: #4caf50; }
+        button { margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>Benvenuto al Test</h1>
+
+<div id="home">
+    <label>Nome: <input type="text" id="userName"></label><br><br>
+    <label>Scegli un test:
+        <select id="testSelect"></select>
+    </label><br><br>
+    <button onclick="startTest()">Inizia Test</button>
+    <p id="homeError" style="color:red;"></p>
+</div>
+
+<div id="testView" class="hidden">
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <div id="questionContainer"></div>
+    <button onclick="nextQuestion()">Prossima Domanda</button>
+    <p id="testError" style="color:red;"></p>
+</div>
+
+<div id="resultView" class="hidden">
+    <h2>Risultato finale</h2>
+    <p id="resultText"></p>
+</div>
+
+<script>
+let tests = [];
+let currentTest = null;
+let currentQuestionIndex = 0;
+let correctAnswers = 0;
+
+async function loadTests() {
+    const res = await fetch('http://localhost:5155/api/Test');
+    tests = await res.json();
+    const select = document.getElementById('testSelect');
+    tests.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.title;
+        select.appendChild(opt);
+    });
+}
+
+function startTest() {
+    const name = document.getElementById('userName').value.trim();
+    const testId = document.getElementById('testSelect').value;
+
+    if (!name || !testId) {
+        document.getElementById('homeError').textContent = "Inserisci il nome e scegli un test!";
+        return;
+    }
+
+    document.getElementById('home').classList.add('hidden');
+    currentTest = tests.find(t => t.id === testId);
+    currentQuestionIndex = 0;
+    correctAnswers = 0;
+    showQuestion();
+    document.getElementById('testView').classList.remove('hidden');
+}
+
+function showQuestion() {
+    const q = currentTest.questions[currentQuestionIndex];
+    const container = document.getElementById('questionContainer');
+    container.innerHTML = `<div class="question"><p>${q.text}</p></div>`;
+    q.options.forEach((opt, i) => {
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="radio" name="answer" value="${i}"> ${opt.text}`;
+        container.appendChild(label);
+        container.appendChild(document.createElement('br'));
+    });
+    updateProgress();
+}
+
+function updateProgress() {
+    const percent = ((currentQuestionIndex) / currentTest.questions.length) * 100;
+    document.getElementById('progressBar').style.width = percent + "%";
+}
+
+function nextQuestion() {
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if (!selected) {
+        document.getElementById('testError').textContent = "Seleziona una risposta!";
+        return;
+    }
+    const answerIndex = parseInt(selected.value);
+    if (currentTest.questions[currentQuestionIndex].options[answerIndex].isCorrect) {
+        correctAnswers++;
+    }
+    currentQuestionIndex++;
+    document.getElementById('testError').textContent = "";
+    if (currentQuestionIndex >= currentTest.questions.length) {
+        finishTest();
+    } else {
+        showQuestion();
+    }
+}
+
+async function finishTest() {
+    document.getElementById('testView').classList.add('hidden');
+    document.getElementById('resultView').classList.remove('hidden');
+    document.getElementById('resultText').textContent =
+        `Ciao ${document.getElementById('userName').value}, hai risposto correttamente a ${correctAnswers} su ${currentTest.questions.length} domande.`;
+
+    // Salvataggio del risultato su MongoDB
+    await fetch('http://localhost:5155/api/UserResult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userName: document.getElementById('userName').value,
+            testId: currentTest.id,
+            correctAnswers: correctAnswers,
+            totalQuestions: currentTest.questions.length
+        })
+    });
+}
+
+// Carica i test all’avvio
+loadTests();
+</script>
+
+</body>
+</html>

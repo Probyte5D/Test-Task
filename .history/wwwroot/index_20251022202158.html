@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Test System</title>
+<style>
+    body { font-family: Arial; margin: 20px; text-align: center; }
+    .hidden { display: none; }
+    .question-card { margin-bottom: 20px; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-block; text-align: left; }
+    .progress { width: 100%; background: #eee; height: 20px; margin-bottom: 20px; border-radius: 10px; }
+    .progress-bar { width: 0; height: 100%; background: #4caf50; border-radius: 10px; transition: width 0.3s; }
+    .answer-btn { display: block; width: 300px; margin: 10px auto; padding: 15px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
+    .answer-btn:hover { transform: scale(1.05); }
+    .answer-btn.correct { background-color: #4caf50; color: white; }
+    .answer-btn.wrong { background-color: #f44336; color: white; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>Benvenuto al Test</h1>
+
+<div id="home">
+    <label>Nome: <input type="text" id="userName" placeholder="Es. Mario Rossi"></label><br><br>
+    <label>Scegli un test:
+        <select id="testSelect">
+            <option value="">-- Seleziona un test --</option>
+        </select>
+    </label><br><br>
+    <button onclick="startTest()">Inizia Test</button>
+    <p id="homeError" style="color:red;"></p>
+</div>
+
+<div id="testView" class="hidden">
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <div id="questionContainer"></div>
+    <p id="testError" style="color:red;"></p>
+</div>
+
+<div id="resultView" class="hidden">
+    <h2>Risultato finale</h2>
+    <p id="resultText"></p>
+    <button onclick="restartTest()">Ricomincia</button>
+</div>
+
+<script>
+let tests = [];
+let currentTest = null;
+let currentQuestionIndex = 0;
+let correctAnswers = 0;
+
+async function loadTests() {
+    const res = await fetch('http://localhost:5155/api/Test');
+    tests = await res.json();
+    const select = document.getElementById('testSelect');
+    tests.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.title;
+        select.appendChild(opt);
+    });
+}
+
+function startTest() {
+    const name = document.getElementById('userName').value.trim();
+    const testId = document.getElementById('testSelect').value;
+
+    if (!name || !testId) {
+        document.getElementById('homeError').textContent = "Inserisci il nome e scegli un test!";
+        return;
+    }
+
+    document.getElementById('home').classList.add('hidden');
+    currentTest = tests.find(t => t.id === testId);
+    currentQuestionIndex = 0;
+    correctAnswers = 0;
+    showQuestion();
+    document.getElementById('testView').classList.remove('hidden');
+}
+
+function showQuestion() {
+    const q = currentTest.questions[currentQuestionIndex];
+    const container = document.getElementById('questionContainer');
+    container.innerHTML = `<div class="question-card"><p><strong>Domanda ${currentQuestionIndex + 1} di ${currentTest.questions.length}:</strong> ${q.text}</p></div>`;
+
+    q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'answer-btn';
+        btn.textContent = opt.text;
+        btn.onclick = () => selectAnswer(i);
+        container.appendChild(btn);
+    });
+
+    updateProgress();
+}
+
+function updateProgress() {
+    const percent = ((currentQuestionIndex) / currentTest.questions.length) * 100;
+    document.getElementById('progressBar').style.width = percent + "%";
+}
+
+function selectAnswer(index) {
+    const q = currentTest.questions[currentQuestionIndex];
+    if (q.options[index].isCorrect) correctAnswers++;
+    currentQuestionIndex++;
+    if (currentQuestionIndex >= currentTest.questions.length) {
+        finishTest();
+    } else {
+        showQuestion();
+    }
+}
+
+async function finishTest() {
+    document.getElementById('testView').classList.add('hidden');
+    document.getElementById('resultView').classList.remove('hidden');
+    document.getElementById('resultText').textContent =
+        `Ciao ${document.getElementById('userName').value}, hai risposto correttamente a ${correctAnswers} su ${currentTest.questions.length} domande.`;
+
+    await fetch('http://localhost:5155/api/UserResult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userName: document.getElementById('userName').value,
+            testId: currentTest.id,
+            correctAnswers: correctAnswers,
+            totalQuestions: currentTest.questions.length
+        })
+    });
+}
+
+function restartTest() {
+    document.getElementById('resultView').classList.add('hidden');
+    document.getElementById('home').classList.remove('hidden');
+    document.getElementById('userName').value = '';
+    document.getElementById('testSelect').value = '';
+}
+
+// Carica i test all’avvio
+loadTests();
+</script>
+
+</body>
+</html>
