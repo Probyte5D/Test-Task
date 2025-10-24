@@ -12,12 +12,13 @@ namespace TestSystem.Controllers;
 [Route("api/[controller]")]
 public class TestController : ControllerBase
 {
-    private readonly MongoDBService _mongoService;
+    private readonly IMongoDBService _mongoService;
 
-    public TestController(MongoDBService mongoService)
+    public TestController(IMongoDBService mongoService)
     {
         _mongoService = mongoService;
     }
+
 
     // GET: api/test
     //operazioni CRUD Fa una query su MongoDB (Find(_ => true)) per ottenere tutti i documenti nella collezione.Restituisce il risultato con Ok(tests) → HTTP 200.
