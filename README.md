@@ -16,6 +16,7 @@ Il sistema è sviluppato con **C# .NET**, **MongoDB**, **HTML**, **CSS** e **Jav
 
 ![Pagine test](./images/image1.png)
 ![MongoDB](./images/image2.png)
+![Unittest](./images/image3.png)
 ---
 
 ## 📂 **Struttura del progetto**
@@ -39,7 +40,6 @@ TestSystem/
 ├─ Program.cs / Startup.cs # Configurazione Web API
 └─ appsettings.json # Connessione MongoDB
 
-yaml
 
 ---
 
