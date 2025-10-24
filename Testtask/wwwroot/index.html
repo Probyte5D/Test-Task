@@ -14,6 +14,7 @@
     .answer-btn.correct { background-color: #4caf50; color: white; }
     .answer-btn.wrong { background-color: #f44336; color: white; }
     button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 8px; }
+    .result-answer { text-align: left; margin-bottom: 10px; padding: 10px; border-bottom: 1px solid #ccc; }
 </style>
 </head>
 <body>
@@ -40,6 +41,7 @@
 <div id="resultView" class="hidden">
     <h2>Risultato finale</h2>
     <p id="resultText"></p>
+    <div id="detailedAnswers"></div>
     <button onclick="restartTest()">Ricomincia</button>
 </div>
 
@@ -48,7 +50,9 @@ let tests = [];
 let currentTest = null;
 let currentQuestionIndex = 0;
 let correctAnswers = 0;
+let userResultId = null;
 
+// Carica i test all’avvio
 async function loadTests() {
     const res = await fetch('http://localhost:5155/api/Test');
     tests = await res.json();
@@ -61,7 +65,7 @@ async function loadTests() {
     });
 }
 
-function startTest() {
+async function startTest() {
     const name = document.getElementById('userName').value.trim();
     const testId = document.getElementById('testSelect').value;
 
@@ -69,6 +73,21 @@ function startTest() {
         document.getElementById('homeError').textContent = "Inserisci il nome e scegli un test!";
         return;
     }
+
+    // Creo UserResult iniziale
+    const res = await fetch('http://localhost:5155/api/UserResult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userName: name,
+            testId: testId,
+            correctAnswers: 0,
+            totalQuestions: tests.find(t => t.id === testId).questions.length,
+            answers: []
+        })
+    });
+    const userResult = await res.json();
+    userResultId = userResult.id;
 
     document.getElementById('home').classList.add('hidden');
     currentTest = tests.find(t => t.id === testId);
@@ -99,46 +118,67 @@ function updateProgress() {
     document.getElementById('progressBar').style.width = percent + "%";
 }
 
-function selectAnswer(index) {
+async function selectAnswer(index) {
     const q = currentTest.questions[currentQuestionIndex];
+    const selectedOption = q.options[index];
     const buttons = document.querySelectorAll('.answer-btn');
 
-    // Evidenzia la scelta corretta o sbagliata
     buttons.forEach((btn, i) => {
-        if (i === index) {
-            btn.classList.add(q.options[i].isCorrect ? 'correct' : 'wrong');
-        }
-        btn.disabled = true; // disabilita tutti i bottoni dopo la scelta
+        if (i === index) btn.classList.add(selectedOption.isCorrect ? 'correct' : 'wrong');
+        btn.disabled = true;
     });
 
-    if (q.options[index].isCorrect) correctAnswers++;
+    if (selectedOption.isCorrect) correctAnswers++;
+
+    // Salvo la risposta singola
+    await fetch(`http://localhost:5155/api/UserResult/Answer?userResultId=${userResultId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            questionId: q.id,
+            selectedOptionId: selectedOption.id,
+            isCorrect: selectedOption.isCorrect
+        })
+    });
 
     setTimeout(() => {
         currentQuestionIndex++;
-        if (currentQuestionIndex >= currentTest.questions.length) {
-            finishTest();
-        } else {
-            showQuestion();
-        }
+        if (currentQuestionIndex >= currentTest.questions.length) finishTest();
+        else showQuestion();
     }, 500);
 }
 
 async function finishTest() {
     document.getElementById('testView').classList.add('hidden');
     document.getElementById('resultView').classList.remove('hidden');
+
+    // Mostra risultato base
     document.getElementById('resultText').textContent =
         `Ciao ${document.getElementById('userName').value}, hai risposto correttamente a ${correctAnswers} su ${currentTest.questions.length} domande.`;
 
-    // Salvataggio del risultato su MongoDB
-    await fetch('http://localhost:5155/api/UserResult', {
-        method: 'POST',
+    // Aggiorna punteggio finale
+    await fetch(`http://localhost:5155/api/UserResult/${userResultId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            userName: document.getElementById('userName').value,
-            testId: currentTest.id,
             correctAnswers: correctAnswers,
             totalQuestions: currentTest.questions.length
         })
+    });
+
+    // Carica dettagli con testi delle domande e risposte selezionate
+    const detailsRes = await fetch(`http://localhost:5155/api/UserResult/${userResultId}/Details`);
+    const details = await detailsRes.json();
+
+    const container = document.getElementById('detailedAnswers');
+    container.innerHTML = '';
+    details.Answers.forEach((a, i) => {
+        const div = document.createElement('div');
+        div.className = 'result-answer';
+        div.innerHTML = `<strong>Domanda ${i + 1}:</strong> ${a.QuestionText} <br>
+                         <strong>Risposta scelta:</strong> ${a.SelectedOptionText} <br>
+                         <strong>Corretta:</strong> ${a.IsCorrect ? 'Sì' : 'No'}`;
+        container.appendChild(div);
     });
 }
 
@@ -147,9 +187,10 @@ function restartTest() {
     document.getElementById('home').classList.remove('hidden');
     document.getElementById('userName').value = '';
     document.getElementById('testSelect').value = '';
+    userResultId = null;
 }
 
-// Carica i test all’avvio
+// Avvio
 loadTests();
 </script>
 
