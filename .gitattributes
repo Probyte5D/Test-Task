@@ -1,0 +1,8 @@
+# Ignora la cartella dei file statici (HTML, CSS, JS)
+wwwroot/* linguist-vendored
+
+# Ignora eventuali file Razor (CSHTML)
+Pages/*.cshtml linguist-vendored
+
+# Ignora eventuali librerie front-end
+wwwroot/lib/* linguist-vendored

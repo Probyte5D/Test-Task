@@ -40,7 +40,6 @@ TestSystem/
 └─ appsettings.json # Connessione MongoDB
 
 yaml
-Copia codice
 
 ---
 

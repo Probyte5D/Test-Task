@@ -5,6 +5,8 @@ using TestSystem.Services;
 
 
 namespace TestSystem.Controllers;
+//controlloer: gestisce chiamate HTTP/Espone due endpoint
+//Service: Il controller si appoggia a un servizio MongoDBService, iniettato nel costruttore. acaPrincipio di inversione delle dipendenze: il controller non si preoccupa di come MongoDB è configurato, ma usa un servizio già pronto
 
 [ApiController]
 [Route("api/[controller]")]
@@ -18,6 +20,7 @@ public class TestController : ControllerBase
     }
 
     // GET: api/test
+    //operazioni CRUD Fa una query su MongoDB (Find(_ => true)) per ottenere tutti i documenti nella collezione.Restituisce il risultato con Ok(tests) → HTTP 200.
     [HttpGet]
     public IActionResult GetAllTests()
     {
