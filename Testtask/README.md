@@ -7,16 +7,14 @@ Il sistema è sviluppato con **C# .NET**, **MongoDB**, **HTML**, **CSS** e **Jav
 ---
 
 ## 🖼️ **Anteprima Applicazione**
-
-
 ![Project Preview](./images/gif.gif)
 - Homepage: inserimento nome e selezione test
 - Test view: sequenza dinamica di domande con opzioni multiple
 - Result view: visualizzazione dei risultati finali
 - Unit test
-
 ![Pagine test](./images/image1.png)
 ![MongoDB](./images/image2.png)
+
 ![Unit test](./images/image3.png)
 ---
 
